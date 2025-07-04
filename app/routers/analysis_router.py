@@ -20,6 +20,12 @@ import asyncio
 import base64
 import logging
 import time
+import tiktoken
+import io
+import json
+from openai import OpenAI
+from docx import Document as DocxDocument
+from pdfminer.high_level import extract_text as extract_pdf_text
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -95,15 +101,12 @@ async def analyze_project_upload(
         if ext == "pdf":
             # PDF extraction
             logger.info("Extracting text from PDF...")
-            from io import BytesIO
-            from pdfminer.high_level import extract_text
-            deck_content = extract_text(BytesIO(content))
+            deck_content = extract_pdf_text(io.BytesIO(content))
         elif ext == "pptx":
             # PPTX extraction
             logger.info("Extracting text from PPTX...")
-            from io import BytesIO
             from pptx import Presentation
-            prs = Presentation(BytesIO(content))
+            prs = Presentation(io.BytesIO(content))
             slides_text = []
             for slide in prs.slides:
                 for shape in slide.shapes:
@@ -116,9 +119,7 @@ async def analyze_project_upload(
         elif ext == "docx":
             # DOCX extraction
             logger.info("Extracting text from DOCX...")
-            from io import BytesIO
-            from docx import Document
-            doc = Document(BytesIO(content))
+            doc = DocxDocument(io.BytesIO(content))
             paragraphs = [p.text for p in doc.paragraphs]
             deck_content = "\n".join(paragraphs)
         elif ext in ["txt", "md"]:
@@ -537,4 +538,163 @@ async def generate_followup_questions_endpoint(
             "message": f"Error generating follow-up questions: {str(e)}",
             "questions_generated": False,
             "processing_time_seconds": round(total_time, 1)
-        } 
+        }
+
+@router.post("/document/analyze")
+async def analyze_document(
+    file: UploadFile = File(...)
+):
+    """
+    Analyze any VC document (Term Sheet, SAFE, SAFT, SPA, Shareholders' Agreement, Cap Table, Due Diligence, KYC, etc.).
+    Returns risk summary and score.
+    """
+    start_time = time.time()
+    # 1. Extract text from file
+    content = await file.read()
+    if not file.filename:
+        return {"error": "File must have a filename."}
+    ext = file.filename.lower().split('.')[-1]
+    if ext == "pdf":
+        text = extract_pdf_text(io.BytesIO(content))
+    elif ext == "docx":
+        doc = DocxDocument(io.BytesIO(content))
+        text = "\n".join([p.text for p in doc.paragraphs])
+    elif ext in ["txt", "md"]:
+        try:
+            text = content.decode('utf-8')
+        except UnicodeDecodeError:
+            text = content.decode('latin-1')
+    else:
+        return {"error": "Unsupported file type. Use PDF, DOCX, TXT, or MD."}
+    if not text or not text.strip():
+        return {"error": "Could not extract text from file."}
+
+    # 1.5. Detect document type using OpenAI
+    client = OpenAI()
+    detect_prompt = f"You are an expert legal analyst. Given the following document text, classify the document type as one of: Term Sheet, SAFE, SAFT, SPA, Shareholders' Agreement, Cap Table, Due Diligence, KYC, or Other. Respond ONLY with the type string, nothing else.\n\n---\n\n{text[:3000]}\n\n---\n\nType:"
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are an expert legal analyst."},
+            {"role": "user", "content": detect_prompt}
+        ],
+        temperature=0.1
+    )
+    doc_type_raw = resp.choices[0].message.content
+    if doc_type_raw:
+        doc_type = doc_type_raw.strip().split("\n")[0]
+        if not doc_type:
+            doc_type = "Other"
+    else:
+        doc_type = "Other"
+
+    # 2. Chunking (by 3000 tokens)
+    enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
+    tokens = enc.encode(text)
+    max_tokens = 3000
+    chunks = []
+    for i in range(0, len(tokens), max_tokens):
+        chunk_tokens = tokens[i:i+max_tokens]
+        chunk_text = enc.decode(chunk_tokens)
+        chunks.append(chunk_text)
+
+    # 3. Clause extraction (OpenAI call)
+    clause_chunks = []
+    for chunk in chunks:
+        prompt = f"""Extract only the shortest, most risk-relevant clauses from the following {doc_type} document chunk. Ignore boilerplate, generic, or non-risky content. Return a JSON array of concise clause strings, each focused on a specific risk or obligation.\n\n---\n\n{chunk}\n\n---\n\nJSON array of clauses:"""
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert VC legal analyst. Only extract clauses that present a real risk or obligation. Be extremely concise."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1
+        )
+        try:
+            content_str = resp.choices[0].message.content or ''
+            clauses = json.loads(content_str)
+        except Exception:
+            import re
+            match = re.search(r'\[.*\]', content_str, re.DOTALL)
+            if match:
+                group = match.group(0)
+                if group and isinstance(group, str):
+                    clauses = json.loads(group)
+                else:
+                    clauses = []
+            else:
+                clauses = []
+        clause_chunks.extend(clauses)
+
+    # 4. Risk evaluation (OpenAI call per clause)
+    risk_objs = []
+    for clause in clause_chunks:
+        prompt = f"""For the following clause from a {doc_type} document, respond ONLY if it presents a real risk. Label the risk as 'low', 'medium', or 'critical'. Respond in this JSON format:\n{{\n  \"clause\": \"<1-line risk clause>\",\n  \"risk_level\": \"low\"|\"medium\"|\"critical\"\n}}\nIf there is no real risk, do not return anything.\n\nClause: {clause}\n\nJSON:"""
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert VC legal risk analyst. Only respond if there is a real risk. Be extremely concise."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1
+        )
+        try:
+            content_str = resp.choices[0].message.content or ''
+            if not content_str.strip():
+                continue
+            risk_obj = json.loads(content_str)
+        except Exception:
+            import re
+            match = re.search(r'\{.*\}', content_str, re.DOTALL)
+            if match:
+                group = match.group(0)
+                if group and isinstance(group, str):
+                    risk_obj = json.loads(group)
+                else:
+                    continue
+            else:
+                continue
+        risk_objs.append(risk_obj)
+
+    # 5. Score computation (OpenAI call)
+    score_prompt = f"""Given the following array of clause risk objects from a {doc_type} document, compute an overall risk score from 0 (very risky) to 100 (very safe).\n\n- Give a score close to 100 ONLY if the document is extremely safe, with no critical risks and very few or no medium risks.\n- If there are any critical risks, or several medium risks, the score should be much lower.\n- Be strict and harsh: do NOT be generous. Even a few real risks should significantly lower the score.\n- Respond in this JSON format: {{ \"score\": <number 0-100> }}\n\nArray of risks:\n{json.dumps(risk_objs, ensure_ascii=False)}\n\nJSON:"""
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are an expert VC risk scoring analyst. Be objective and rigorous."},
+            {"role": "user", "content": score_prompt}
+        ],
+        temperature=0.1
+    )
+    try:
+        content_str = resp.choices[0].message.content or ''
+        score_obj = json.loads(content_str)
+    except Exception:
+        import re
+        match = re.search(r'\{.*\}', content_str, re.DOTALL)
+        if match:
+            group = match.group(0)
+            if group and isinstance(group, str):
+                score_obj = json.loads(group)
+            else:
+                score_obj = {"score": 50}
+        else:
+            score_obj = {"score": 50}
+
+    # 6. Build risk summary
+    risk_summary = {"critical": [], "medium": [], "low": []}
+    for r in risk_objs:
+        lvl = r.get("risk_level", "medium")
+        if not lvl:
+            lvl = "medium"
+        lvl = str(lvl).lower()
+        if lvl not in risk_summary:
+            lvl = "medium"
+        risk_summary[lvl].append(r.get("clause", ""))
+
+    # 7. Final response
+    return {
+        "document_type": doc_type,
+        "score": score_obj.get("score", 50),
+        "risk_summary": risk_summary
+    } 
