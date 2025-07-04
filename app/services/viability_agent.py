@@ -1,6 +1,10 @@
 from openai import OpenAI
+import logging
 from typing import Dict, Any
 from app.core.config import settings
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 class ViabilityAgent:
     def __init__(self):
@@ -14,12 +18,15 @@ class ViabilityAgent:
         Assess project viability from VC perspective
         """
         try:
+            logger.info(f"Starting viability assessment for project: {project_info.get('project_name', 'Unknown')}")
+            
             # Create assessment prompt
             prompt = self._create_viability_prompt(project_info)
             
             # Get assessment from OpenAI
+            logger.info("Generating viability assessment with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert VC analyst. Provide clear, objective viability assessments."},
                     {"role": "user", "content": prompt}
@@ -28,15 +35,19 @@ class ViabilityAgent:
             )
             
             assessment_text = response.choices[0].message.content or ""
+            logger.info("Viability assessment generated successfully")
             
             # Parse the assessment
-            return self._parse_viability_assessment(assessment_text)
+            result = self._parse_viability_assessment(assessment_text)
+            logger.info(f"Viability assessment completed - Score: {result.get('score', 'N/A')}")
+            return result
             
         except Exception as e:
+            logger.error(f"Error in viability assessment: {str(e)}")
             return {
                 "score": 5,
-                "explanation": f"Error en evaluación: {str(e)}",
-                "risk_factors": ["Error técnico"],
+                "explanation": f"Error in evaluation: {str(e)}",
+                "risk_factors": ["Technical error"],
                 "strengths": []
             }
     
@@ -45,40 +56,41 @@ class ViabilityAgent:
         Create viability assessment prompt
         """
         return f"""
-        Evalúa la viabilidad de este proyecto desde la perspectiva de un VC (Venture Capital).
+        Assess the viability of this project from a VC (Venture Capital) perspective.
         
-        INFORMACIÓN DEL PROYECTO:
-        - Nombre: {project_info.get('project_name', 'N/A')}
-        - Descripción: {project_info.get('description', 'N/A')}
-        - Problema: {project_info.get('problem_statement', 'N/A')}
-        - Solución: {project_info.get('solution', 'N/A')}
-        - Mercado objetivo: {project_info.get('target_market', 'N/A')}
-        - Modelo de negocio: {project_info.get('business_model', 'N/A')}
-        - Equipo: {project_info.get('team_info', [])}
+        PROJECT INFORMATION:
+        - Name: {project_info.get('project_name', 'N/A')}
+        - Description: {project_info.get('description', 'N/A')}
+        - Problem: {project_info.get('problem_statement', 'N/A')}
+        - Solution: {project_info.get('solution', 'N/A')}
+        - Target Market: {project_info.get('target_market', 'N/A')}
+        - Business Model: {project_info.get('business_model', 'N/A')}
+        - Team: {project_info.get('team_info', [])}
         
-        CRITERIOS DE EVALUACIÓN (1-10):
-        1-2: Muy alto riesgo, mercado dudoso, equipo débil
-        3-4: Alto riesgo, problemas significativos
-        5-6: Riesgo medio, potencial limitado
-        7-8: Bajo riesgo, buen potencial
-        9-10: Muy bajo riesgo, excelente potencial
+        EVALUATION CRITERIA (1-10):
+        1-2: Very high risk, questionable market, weak team
+        3-4: High risk, significant problems
+        5-6: Medium risk, limited potential
+        7-8: Low risk, good potential
+        9-10: Very low risk, excellent potential
         
-        Proporciona tu evaluación en este formato JSON:
+        Provide your assessment in this JSON format:
         {{
             "score": 8,
-            "explanation": "Explicación clara y concisa de por qué este puntaje",
+            "explanation": "Clear and concise explanation of why this score",
             "risk_factors": [
-                "Factor de riesgo 1",
-                "Factor de riesgo 2"
+                "Risk factor 1",
+                "Risk factor 2"
             ],
             "strengths": [
-                "Fortaleza 1",
-                "Fortaleza 2"
+                "Strength 1",
+                "Strength 2"
             ],
-            "recommendation": "Invertir / No invertir / Más investigación"
+            "recommendation": "Invest / Don't invest / More research needed"
         }}
         
-        Sé objetivo y específico. Considera: tamaño del mercado, competencia, equipo, tecnología, escalabilidad, y modelo de negocio.
+        Be objective and specific. Consider: market size, competition, team, technology, scalability, and business model.
+        All output must be in English.
         """
     
     def _parse_viability_assessment(self, assessment_text: str) -> Dict[str, Any]:
@@ -99,16 +111,16 @@ class ViabilityAgent:
             return {
                 "score": 5,
                 "explanation": assessment_text[:200] + "...",
-                "risk_factors": ["Análisis incompleto"],
+                "risk_factors": ["Incomplete analysis"],
                 "strengths": [],
-                "recommendation": "Más investigación"
+                "recommendation": "More research needed"
             }
             
         except Exception as e:
             return {
                 "score": 5,
                 "explanation": f"Error parsing assessment: {str(e)}",
-                "risk_factors": ["Error técnico"],
+                "risk_factors": ["Technical error"],
                 "strengths": [],
-                "recommendation": "Más investigación"
+                "recommendation": "More research needed"
             } 

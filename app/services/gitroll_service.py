@@ -1,10 +1,14 @@
 import requests
 import json
 import time
+import logging
 from typing import Optional, Dict, Any
 from app.core.config import settings
 from app.models.schemas import GitRollScan, GitRollScanResponse
 import re
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 class GitRollService:
     def __init__(self):
@@ -15,27 +19,34 @@ class GitRollService:
         Initiate a GitRoll scan for a GitHub user
         """
         try:
+            logger.info(f"Initiating GitRoll scan for user: {username}")
             payload = {"user": username}
             response = requests.post(self.api_url, json=payload)
             
             if response.status_code == 200:
                 data = response.json()
                 scan_id = data.get("scan_id") or self._extract_scan_id_from_response(data)
+                user_id = data.get("user_id") or username  # Return username as user_id if not provided
                 profile_url = f"https://gitroll.io/profile/{scan_id}" if scan_id else None
+                
+                logger.info(f"GitRoll scan initiated successfully for {username} - Scan ID: {scan_id}")
                 
                 return GitRollScanResponse(
                     success=True,
                     scan_id=scan_id,
                     profile_url=profile_url,
-                    message="Scan initiated successfully"
+                    message="Scan initiated successfully",
+                    user_id=user_id
                 )
             else:
+                logger.error(f"GitRoll scan initiation failed for {username}: {response.status_code} - {response.text}")
                 return GitRollScanResponse(
                     success=False,
                     message=f"Failed to initiate scan: {response.status_code} - {response.text}"
                 )
                 
         except Exception as e:
+            logger.error(f"Error initiating GitRoll scan for {username}: {str(e)}")
             return GitRollScanResponse(
                 success=False,
                 message=f"Error initiating scan: {str(e)}"
@@ -46,6 +57,7 @@ class GitRollService:
         Check the status of a GitRoll scan
         """
         try:
+            logger.info(f"Checking GitRoll scan status for scan ID: {scan_id}")
             profile_url = f"https://gitroll.io/profile/{scan_id}"
             response = requests.get(profile_url)
             
@@ -53,21 +65,26 @@ class GitRollService:
                 # Parse the HTML to extract score and OG image score
                 score, og_image_score = self._parse_profile_page(response.text)
                 
+                status = "completed" if score is not None else "processing"
+                logger.info(f"GitRoll scan {scan_id} status: {status}, score: {score}")
+                
                 return {
                     "success": True,
                     "scan_id": scan_id,
                     "profile_url": profile_url,
                     "score": score,
                     "og_image_score": og_image_score,
-                    "status": "completed" if score is not None else "processing"
+                    "status": status
                 }
             else:
+                logger.warning(f"GitRoll scan status check failed for {scan_id}: {response.status_code}")
                 return {
                     "success": False,
                     "message": f"Failed to check scan status: {response.status_code}"
                 }
                 
         except Exception as e:
+            logger.error(f"Error checking GitRoll scan status for {scan_id}: {str(e)}")
             return {
                 "success": False,
                 "message": f"Error checking scan status: {str(e)}"
@@ -104,16 +121,22 @@ class GitRollService:
         Wait for scan completion with timeout
         """
         start_time = time.time()
+        logger.info(f"Waiting for GitRoll scan completion: {scan_id} (max wait: {max_wait_time}s)")
         
         while time.time() - start_time < max_wait_time:
             status = await self.check_scan_status(scan_id)
             
             if status.get("status") == "completed":
+                elapsed_time = time.time() - start_time
+                logger.info(f"GitRoll scan {scan_id} completed in {elapsed_time:.1f}s")
                 return status
             
             # Wait 10 seconds before checking again
+            elapsed = time.time() - start_time
+            logger.info(f"GitRoll scan {scan_id} still processing... (elapsed: {elapsed:.1f}s)")
             time.sleep(10)
         
+        logger.warning(f"GitRoll scan {scan_id} timed out after {max_wait_time}s")
         return {
             "success": False,
             "message": "Scan timeout - scan may still be processing"

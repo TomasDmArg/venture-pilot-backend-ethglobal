@@ -1,9 +1,13 @@
 import base64
 import json
+import logging
 from openai import OpenAI
 from typing import Dict, Any, Optional
 from app.core.config import settings
 from app.models.schemas import ProjectSummary, FounderInfo, GitRollScan
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 class SimpleAnalysisService:
     def __init__(self):
@@ -17,6 +21,8 @@ class SimpleAnalysisService:
         Simple analysis function using OpenAI directly
         """
         try:
+            logger.info(f"Starting project analysis for: {project_name or 'Unknown'}")
+            
             # Decode base64 deck file
             deck_content = self._decode_deck_file(deck_file)
             
@@ -24,8 +30,9 @@ class SimpleAnalysisService:
             prompt = self._create_analysis_prompt(deck_content, project_name)
             
             # Get analysis from OpenAI
+            logger.info("Generating project analysis with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert business analyst specializing in startup evaluation. Provide clear, structured analysis."},
                     {"role": "user", "content": prompt}
@@ -35,9 +42,11 @@ class SimpleAnalysisService:
             
             # Parse the response
             analysis_text = response.choices[0].message.content or ""
+            logger.info("Project analysis generated successfully")
             
             # Extract information
             project_info = self._extract_project_info(analysis_text)
+            logger.info(f"Project analysis completed for: {project_info.get('project_name', 'Unknown')}")
             
             # Create project summary
             return ProjectSummary(
@@ -53,6 +62,7 @@ class SimpleAnalysisService:
             )
             
         except Exception as e:
+            logger.error(f"Error in project analysis: {str(e)}")
             # Return error summary
             return ProjectSummary(
                 project_name="Analysis Failed",
@@ -71,12 +81,15 @@ class SimpleAnalysisService:
         Analyze project content directly (without base64 encoding)
         """
         try:
+            logger.info(f"Starting project content analysis for: {project_name or 'Unknown'}")
+            
             # Create analysis prompt
             prompt = self._create_analysis_prompt(deck_content, project_name)
             
             # Get analysis from OpenAI
+            logger.info("Generating project content analysis with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert business analyst specializing in startup evaluation. Provide clear, structured analysis."},
                     {"role": "user", "content": prompt}
@@ -86,9 +99,11 @@ class SimpleAnalysisService:
             
             # Parse the response
             analysis_text = response.choices[0].message.content or ""
+            logger.info("Project content analysis generated successfully")
             
             # Extract information
             project_info = self._extract_project_info(analysis_text)
+            logger.info(f"Project content analysis completed for: {project_info.get('project_name', 'Unknown')}")
             
             # Create project summary
             return ProjectSummary(
@@ -104,6 +119,7 @@ class SimpleAnalysisService:
             )
             
         except Exception as e:
+            logger.error(f"Error in project content analysis: {str(e)}")
             # Return error summary
             return ProjectSummary(
                 project_name="Analysis Failed",

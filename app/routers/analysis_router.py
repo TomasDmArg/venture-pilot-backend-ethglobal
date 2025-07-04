@@ -15,6 +15,11 @@ from app.services.gitroll_service import GitRollService
 from typing import Dict, Any, Optional
 import asyncio
 import base64
+import logging
+import time
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/analysis", tags=["Project Analysis"])
 
@@ -61,27 +66,35 @@ async def analyze_project_upload(
     """
     Analyze a project deck uploaded as a file (FormData) - Complete Report
     """
+    start_time = time.time()
     try:
+        logger.info(f"Starting complete analysis for file: {file.filename}")
+        
         if not file:
+            logger.error("No file provided")
             return {
                 "status": "error",
-                "message": "No se proporcionó ningún archivo",
+                "message": "No file provided",
                 "analysis_completed": False
             }
         
         # Detect file type and extract content
         filename = file.filename or ""
         ext = filename.lower().split('.')[-1]
+        logger.info(f"Processing file: {filename} (type: {ext})")
+        
         content = await file.read()
         deck_content = None
         
         if ext == "pdf":
             # PDF extraction
+            logger.info("Extracting text from PDF...")
             from io import BytesIO
             from pdfminer.high_level import extract_text
             deck_content = extract_text(BytesIO(content))
         elif ext == "pptx":
             # PPTX extraction
+            logger.info("Extracting text from PPTX...")
             from io import BytesIO
             from pptx import Presentation
             prs = Presentation(BytesIO(content))
@@ -96,6 +109,7 @@ async def analyze_project_upload(
             deck_content = "\n".join(slides_text)
         elif ext == "docx":
             # DOCX extraction
+            logger.info("Extracting text from DOCX...")
             from io import BytesIO
             from docx import Document
             doc = Document(BytesIO(content))
@@ -103,6 +117,7 @@ async def analyze_project_upload(
             deck_content = "\n".join(paragraphs)
         elif ext in ["txt", "md"]:
             # TXT or Markdown
+            logger.info("Extracting text from TXT/MD...")
             try:
                 deck_content = content.decode('utf-8')
             except UnicodeDecodeError:
@@ -111,24 +126,32 @@ async def analyze_project_upload(
                 except UnicodeDecodeError:
                     deck_content = content.decode('cp1252', errors='ignore')
         else:
+            logger.error(f"Unsupported file type: {ext}")
             return {
                 "status": "error",
-                "message": "Tipo de archivo no soportado. Usa PDF, PPTX, DOCX, TXT o MD.",
+                "message": "Unsupported file type. Use PDF, PPTX, DOCX, TXT or MD.",
                 "analysis_completed": False
             }
         
         if not deck_content or not deck_content.strip():
+            logger.error("Could not extract text from file")
             return {
                 "status": "error",
-                "message": "No se pudo extraer texto del archivo.",
+                "message": "Could not extract text from file.",
                 "analysis_completed": False
             }
         
+        logger.info(f"Text extraction completed. Content length: {len(deck_content)} characters")
+        
         # Step 1: Basic project analysis
+        logger.info("Step 1: Starting basic project analysis...")
+        step1_start = time.time()
         project_summary = await analysis_service.analyze_project_content(
             deck_content=deck_content,
             project_name=project_name or file.filename
         )
+        step1_time = time.time() - step1_start
+        logger.info(f"Step 1 completed in {step1_time:.1f}s - Project: {project_summary.project_name}")
         
         # Step 2: Extract project info for other analyses
         project_info = {
@@ -142,21 +165,40 @@ async def analyze_project_upload(
         }
         
         # Step 3: Viability assessment
+        logger.info("Step 2: Starting viability assessment...")
+        step2_start = time.time()
         viability_assessment = await viability_agent.assess_viability(project_info)
+        step2_time = time.time() - step2_start
+        logger.info(f"Step 2 completed in {step2_time:.1f}s - Viability Score: {viability_assessment.get('score', 'N/A')}")
         
         # Step 4: Founder search
+        logger.info("Step 3: Starting founder search and analysis...")
+        step3_start = time.time()
         founders = await founder_search.extract_and_search_founders(deck_content, project_summary.project_name)
+        step3_time = time.time() - step3_start
+        logger.info(f"Step 3 completed in {step3_time:.1f}s - Founders: {len(founders)}")
         
         # Step 5: GitHub analysis
+        logger.info("Step 4: Starting GitHub analysis...")
+        step4_start = time.time()
         github_repos = await github_analyzer.analyze_github_repos(deck_content, founders)
+        step4_time = time.time() - step4_start
+        logger.info(f"Step 4 completed in {step4_time:.1f}s - GitHub repos: {len(github_repos)}")
         
         # Step 6: Generate simple summary
+        logger.info("Step 5: Generating summary...")
+        step5_start = time.time()
         simple_summary = await summary_generator.generate_simple_summary(
             project_info, 
             viability_assessment.get("score", 5)
         )
+        step5_time = time.time() - step5_start
+        logger.info(f"Step 5 completed in {step5_time:.1f}s")
         
         # Create complete response
+        total_time = time.time() - start_time
+        logger.info(f"Complete analysis finished in {total_time:.1f}s")
+        
         complete_response = {
             "status": "success",
             "project_name": project_summary.project_name,
@@ -165,7 +207,7 @@ async def analyze_project_upload(
             "viability_explanation": viability_assessment.get("explanation", ""),
             "risk_factors": viability_assessment.get("risk_factors", []),
             "strengths": viability_assessment.get("strengths", []),
-            "recommendation": viability_assessment.get("recommendation", "Más investigación"),
+            "recommendation": viability_assessment.get("recommendation", "More research needed"),
             "founders": founders,
             "github_analysis": github_repos,
             "detailed_analysis": {
@@ -176,17 +218,21 @@ async def analyze_project_upload(
                 "business_model": project_summary.business_model
             },
             "analysis_completed": True,
-            "message": f"Análisis completo realizado para: {project_summary.project_name}",
-            "file_processed": file.filename
+            "message": f"Complete analysis performed for: {project_summary.project_name}",
+            "file_processed": file.filename,
+            "processing_time_seconds": round(total_time, 1)
         }
         
         return complete_response
         
     except Exception as e:
+        total_time = time.time() - start_time
+        logger.error(f"Error during analysis after {total_time:.1f}s: {str(e)}")
         return {
             "status": "error", 
-            "message": f"Error durante el análisis: {str(e)}",
-            "analysis_completed": False
+            "message": f"Error during analysis: {str(e)}",
+            "analysis_completed": False,
+            "processing_time_seconds": round(total_time, 1)
         }
 
 @router.post("/project/simple")
@@ -217,7 +263,7 @@ async def analyze_project_simple(request: ProjectAnalysisRequest):
                 "business_model": project_summary.business_model
             },
             "analysis_completed": True,
-            "message": f"Análisis completado para el proyecto: {project_summary.project_name}"
+            "message": f"Analysis completed for project: {project_summary.project_name}"
         }
         
         return human_response
@@ -225,13 +271,13 @@ async def analyze_project_simple(request: ProjectAnalysisRequest):
     except ValueError as e:
         return {
             "status": "error",
-            "message": f"Error de validación: {str(e)}",
+            "message": f"Validation error: {str(e)}",
             "analysis_completed": False
         }
     except Exception as e:
         return {
             "status": "error", 
-            "message": f"Error durante el análisis: {str(e)}",
+            "message": f"Error during analysis: {str(e)}",
             "analysis_completed": False
         }
 

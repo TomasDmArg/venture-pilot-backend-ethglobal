@@ -48,4 +48,5 @@ class GitRollScanResponse(BaseModel):
     success: bool
     scan_id: Optional[str] = None
     profile_url: Optional[str] = None
+    user_id: Optional[str] = None
     message: str 

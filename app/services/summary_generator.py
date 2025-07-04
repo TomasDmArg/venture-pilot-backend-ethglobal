@@ -1,6 +1,10 @@
 from openai import OpenAI
+import logging
 from typing import Dict, Any
 from app.core.config import settings
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 class SummaryGenerator:
     def __init__(self):
@@ -14,6 +18,8 @@ class SummaryGenerator:
         Generate an ultra-simple summary (1 line max) in English
         """
         try:
+            logger.info(f"Generating summary for project: {project_info.get('project_name', 'Unknown')}")
+            
             prompt = f"""
             Generate an ULTRA SIMPLE one-line summary of this project in English.
             
@@ -37,8 +43,9 @@ class SummaryGenerator:
             Summary:
             """
             
+            logger.info("Generating summary with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert at creating concise one-line business summaries in English."},
                     {"role": "user", "content": prompt}
@@ -60,7 +67,9 @@ class SummaryGenerator:
             # Ensure it's one line
             summary = summary.replace('\n', ' ').replace('\r', ' ')
             
+            logger.info(f"Summary generated: {summary}")
             return summary
             
         except Exception as e:
+            logger.error(f"Error generating summary: {str(e)}")
             return f"Error generating summary: {str(e)}" 
