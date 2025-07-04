@@ -53,10 +53,10 @@ class ViabilityAgent:
     
     def _create_viability_prompt(self, project_info: Dict[str, Any]) -> str:
         """
-        Create viability assessment prompt
+        Create viability assessment prompt with stricter criteria
         """
         return f"""
-        Assess the viability of this project from a VC (Venture Capital) perspective.
+        Assess the viability of this project from a VC perspective using STRICT evaluation criteria.
         
         PROJECT INFORMATION:
         - Name: {project_info.get('project_name', 'N/A')}
@@ -67,30 +67,73 @@ class ViabilityAgent:
         - Business Model: {project_info.get('business_model', 'N/A')}
         - Team: {project_info.get('team_info', [])}
         
-        EVALUATION CRITERIA (1-10):
-        1-2: Very high risk, questionable market, weak team
-        3-4: High risk, significant problems
-        5-6: Medium risk, limited potential
-        7-8: Low risk, good potential
-        9-10: Very low risk, excellent potential
+        STRICT EVALUATION CRITERIA (1-10):
+        
+        SCORING BREAKDOWN:
+        - Team Quality (30%): Experience, track record, technical skills, leadership
+        - Market Opportunity (25%): Market size, growth potential, customer demand
+        - Product/Solution (20%): Innovation, technical feasibility, competitive advantage
+        - Business Model (15%): Revenue potential, scalability, unit economics
+        - Execution Risk (10%): Implementation challenges, timeline, resources
+        
+        PENALTY FACTORS (DEDUCT POINTS):
+        - Weak team (no relevant experience): -3 points
+        - Small market (<$100M TAM): -2 points
+        - No clear competitive advantage: -2 points
+        - Unproven business model: -2 points
+        - High technical risk: -2 points
+        - Regulatory/compliance issues: -2 points
+        - No traction/customers: -1 point
+        - Poor execution plan: -1 point
+        
+        BONUS FACTORS (ADD POINTS):
+        - Strong team with proven track record: +2 points
+        - Large, growing market (>$1B TAM): +2 points
+        - Clear competitive moat: +2 points
+        - Proven business model: +1 point
+        - Existing traction/customers: +1 point
+        - Strong IP/technology: +1 point
+        
+        FINAL SCORE INTERPRETATION:
+        9-10: Exceptional - Strong investment potential
+        7-8: Good - Worth serious consideration
+        5-6: Average - Needs significant improvement
+        3-4: Poor - High risk, major concerns
+        1-2: Very Poor - Avoid investment
         
         Provide your assessment in this JSON format:
         {{
-            "score": 8,
-            "explanation": "Clear and concise explanation of why this score",
+            "score": 6.5,
+            "explanation": "Detailed explanation of scoring with specific reasons for deductions/bonuses",
+            "team_score": 7.0,
+            "market_score": 6.5,
+            "product_score": 7.5,
+            "business_model_score": 6.0,
+            "execution_score": 5.5,
             "risk_factors": [
-                "Risk factor 1",
-                "Risk factor 2"
+                "Specific risk factor 1 with impact",
+                "Specific risk factor 2 with impact"
             ],
             "strengths": [
-                "Strength 1",
-                "Strength 2"
+                "Specific strength 1",
+                "Specific strength 2"
             ],
-            "recommendation": "Invest / Don't invest / More research needed"
+            "penalties_applied": [
+                "Penalty 1: -X points for reason",
+                "Penalty 2: -X points for reason"
+            ],
+            "bonuses_applied": [
+                "Bonus 1: +X points for reason",
+                "Bonus 2: +X points for reason"
+            ],
+            "recommendation": "Invest / Don't invest / More research needed / Pass",
+            "critical_concerns": [
+                "Critical concern 1 that must be addressed",
+                "Critical concern 2 that must be addressed"
+            ]
         }}
         
-        Be objective and specific. Consider: market size, competition, team, technology, scalability, and business model.
-        All output must be in English.
+        Be extremely critical and objective. If the team is weak, market is small, or risks are high, score accordingly. Don't be generous with scores.
         """
     
     def _parse_viability_assessment(self, assessment_text: str) -> Dict[str, Any]:
