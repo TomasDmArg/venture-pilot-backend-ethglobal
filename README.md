@@ -224,6 +224,21 @@ graph LR
 
 - `POST /analysis/project/upload` - Upload project deck for comprehensive analysis
 - `POST /analysis/project/simple` - Get human-readable summary
+- `POST /document/analyze` - Analyze any VC document (Term Sheet, SAFE, SAFT, SPA, Shareholders' Agreement, Cap Table, Due Diligence, KYC, etc.) and get a risk summary and score
+
+```mermaid
+graph TD
+    A[Usuario sube documento (PDF, DOCX, TXT, MD)] --> B[API /document/analyze]
+    B --> C[Extracción de texto]
+    C --> D[Detección de tipo de documento]
+    D --> E[División en fragmentos]
+    E --> F[Extracción de cláusulas de riesgo]
+    F --> G[Evaluación de riesgos por cláusula]
+    G --> H[Cálculo de score global]
+    H --> I[Resumen de riesgos y score]
+    I --> J[Respuesta al usuario]
+```
+
 - `GET /followup-questions` - Generate follow-up questions only
 - `GET /` - List all available endpoints and agents
 
