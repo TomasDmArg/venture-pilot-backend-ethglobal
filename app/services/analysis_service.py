@@ -7,6 +7,7 @@ from app.models.schemas import ProjectSummary, FounderInfo, GitRollScan
 from app.services.founder_search_service import FounderSearchService
 from app.services.gitroll_service import GitRollService
 import asyncio
+from pydantic import SecretStr
 
 class AnalysisService:
     def __init__(self):
@@ -198,6 +199,9 @@ class AnalysisService:
         Get OpenAI LLM configuration
         """
         from langchain_openai import ChatOpenAI
+        
+        if not settings.openai_api_key:
+            raise ValueError("OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file")
         
         return ChatOpenAI(
             model="gpt-4",

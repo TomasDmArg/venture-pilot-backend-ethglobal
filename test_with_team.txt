@@ -1,0 +1,22 @@
+PROYECTO: ChatterPay
+
+DESCRIPCIÓN:
+ChatterPay es una plataforma que integra con WhatsApp para permitir a los usuarios enviar, recibir, comprar y almacenar criptomonedas directamente dentro de la aplicación de chat. También ofrece la capacidad de generar NFTs a partir de fotos compartidas en WhatsApp.
+
+PROBLEMA:
+La mayoría de las personas no usan criptomonedas debido a la complejidad de las billeteras y la falta de plataformas fáciles de usar.
+
+SOLUCIÓN:
+ChatterPay simplifica el proceso de usar criptomonedas integrándolas directamente en WhatsApp, una plataforma ya familiar para muchos usuarios. Permite a los usuarios realizar transacciones, comprar Bitcoin y Ether, almacenar tokens y generar NFTs todo dentro de la aplicación de chat.
+
+MERCADO OBJETIVO:
+El mercado objetivo son los más de 2 mil millones de usuarios de WhatsApp, con planes de expansión futuros para incluir usuarios de Messenger y Telegram.
+
+MODELO DE NEGOCIO:
+ChatterPay genera ingresos a través de tarifas de transacción, un servicio de suscripción premium y servicios de API. Cobran una tarifa fija de $0.2 por transacción, una tarifa de suscripción mensual de $15, y $5k - 25k por integración pequeña para servicios de API.
+
+EQUIPO:
+- CEO: John Smith - Experto en fintech y blockchain
+- CTO: Maria Garcia - Desarrolladora senior con 10 años en criptomonedas
+- CFO: David Johnson - Ex-director financiero de Coinbase
+- Head of Product: Sarah Wilson - Especialista en UX para aplicaciones móviles 
