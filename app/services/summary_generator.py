@@ -45,7 +45,7 @@ class SummaryGenerator:
             
             logger.info("Generating summary with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert at creating concise one-line business summaries in English."},
                     {"role": "user", "content": prompt}

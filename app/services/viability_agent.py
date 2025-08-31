@@ -26,7 +26,7 @@ class ViabilityAgent:
             # Get assessment from OpenAI
             logger.info("Generating viability assessment with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert VC analyst. Provide clear, objective viability assessments."},
                     {"role": "user", "content": prompt}

@@ -573,7 +573,7 @@ async def analyze_document(
     client = OpenAI()
     detect_prompt = f"You are an expert legal analyst. Given the following document text, classify the document type as one of: Term Sheet, SAFE, SAFT, SPA, Shareholders' Agreement, Cap Table, Due Diligence, KYC, or Other. Respond ONLY with the type string, nothing else.\n\n---\n\n{text[:3000]}\n\n---\n\nType:"
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-5-nano-2025-08-07",
         messages=[
             {"role": "system", "content": "You are an expert legal analyst."},
             {"role": "user", "content": detect_prompt}
@@ -603,7 +603,7 @@ async def analyze_document(
     for chunk in chunks:
         prompt = f"""Extract only the shortest, most risk-relevant clauses from the following {doc_type} document chunk. Ignore boilerplate, generic, or non-risky content. Return a JSON array of concise clause strings, each focused on a specific risk or obligation.\n\n---\n\n{chunk}\n\n---\n\nJSON array of clauses:"""
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5-nano-2025-08-07",
             messages=[
                 {"role": "system", "content": "You are an expert VC legal analyst. Only extract clauses that present a real risk or obligation. Be extremely concise."},
                 {"role": "user", "content": prompt}
@@ -631,7 +631,7 @@ async def analyze_document(
     for clause in clause_chunks:
         prompt = f"""For the following clause from a {doc_type} document, respond ONLY if it presents a real risk. Label the risk as 'low', 'medium', or 'critical'. Respond in this JSON format:\n{{\n  \"clause\": \"<1-line risk clause>\",\n  \"risk_level\": \"low\"|\"medium\"|\"critical\"\n}}\nIf there is no real risk, do not return anything.\n\nClause: {clause}\n\nJSON:"""
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5-nano-2025-08-07",
             messages=[
                 {"role": "system", "content": "You are an expert VC legal risk analyst. Only respond if there is a real risk. Be extremely concise."},
                 {"role": "user", "content": prompt}
@@ -659,7 +659,7 @@ async def analyze_document(
     # 5. Score computation (OpenAI call)
     score_prompt = f"""Given the following array of clause risk objects from a {doc_type} document, compute an overall risk score from 0 (very risky) to 100 (very safe).\n\n- Give a score close to 100 ONLY if the document is extremely safe, with no critical risks and very few or no medium risks.\n- If there are any critical risks, or several medium risks, the score should be much lower.\n- Be strict and harsh: do NOT be generous. Even a few real risks should significantly lower the score.\n- Respond in this JSON format: {{ \"score\": <number 0-100> }}\n\nArray of risks:\n{json.dumps(risk_objs, ensure_ascii=False)}\n\nJSON:"""
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-5-nano-2025-08-07",
         messages=[
             {"role": "system", "content": "You are an expert VC risk scoring analyst. Be objective and rigorous."},
             {"role": "user", "content": score_prompt}

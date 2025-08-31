@@ -204,7 +204,7 @@ class AnalysisService:
             raise ValueError("OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file")
         
         return ChatOpenAI(
-            model="gpt-4",
+            model="gpt-5-nano-2025-08-07",
             api_key=settings.openai_api_key,
             temperature=0.1
         )

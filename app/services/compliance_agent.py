@@ -26,7 +26,7 @@ class ComplianceAgent:
             # Generate compliance analysis with OpenAI
             logger.info("Generating compliance analysis with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert compliance and regulatory analyst specializing in startup evaluation. Identify all potential legal, regulatory, and compliance risks."},
                     {"role": "user", "content": prompt}

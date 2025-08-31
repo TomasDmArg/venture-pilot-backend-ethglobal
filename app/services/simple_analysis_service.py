@@ -32,7 +32,7 @@ class SimpleAnalysisService:
             # Get analysis from OpenAI
             logger.info("Generating project analysis with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert business analyst specializing in startup evaluation. Provide clear, structured analysis."},
                     {"role": "user", "content": prompt}
@@ -89,7 +89,7 @@ class SimpleAnalysisService:
             # Get analysis from OpenAI
             logger.info("Generating project content analysis with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert business analyst specializing in startup evaluation. Provide clear, structured analysis."},
                     {"role": "user", "content": prompt}

@@ -180,7 +180,7 @@ graph LR
 ## 🛠️ Technical Stack
 
 - **Backend**: Python, FastAPI, CrewAI
-- **AI Models**: OpenAI GPT-4o-mini
+- **AI Models**: OpenAI gpt-5-nano-2025-08-07
 - **APIs**: GitHub API, GitRoll API, Google Search
 - **File Processing**: PDF, PPTX, DOCX, TXT, MD
 - **Deployment**: Docker, Docker Compose

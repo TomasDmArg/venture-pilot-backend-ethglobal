@@ -209,7 +209,7 @@ class CompetitorAgent:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert competitive analyst specializing in startup evaluation. Provide clear, objective competitive analysis. Always respond with valid JSON only."},
                     {"role": "user", "content": prompt}

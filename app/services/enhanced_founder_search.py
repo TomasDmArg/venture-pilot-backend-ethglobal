@@ -104,7 +104,7 @@ class EnhancedFounderSearch:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert at extracting founder information from business documents. Extract names, roles, and bios. Always respond in English."},
                     {"role": "user", "content": prompt}
@@ -305,7 +305,7 @@ class EnhancedFounderSearch:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert startup analyst specializing in founder evaluation. Provide objective, detailed assessments in English."},
                     {"role": "user", "content": prompt}

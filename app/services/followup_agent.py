@@ -26,7 +26,7 @@ class FollowUpAgent:
             # Generate questions with OpenAI
             logger.info("Generating follow-up questions with OpenAI...")
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert VC analyst who asks the most critical questions to evaluate startups. Generate only the most important, penetrating questions that will reveal the true potential and risks of a project."},
                     {"role": "user", "content": prompt}
