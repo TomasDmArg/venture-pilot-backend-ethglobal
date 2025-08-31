@@ -31,7 +31,7 @@ class ComplianceAgent:
                     {"role": "system", "content": "You are an expert compliance and regulatory analyst specializing in startup evaluation. Identify all potential legal, regulatory, and compliance risks."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=1
             )
             
             analysis_text = response.choices[0].message.content or ""

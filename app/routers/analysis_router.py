@@ -578,7 +578,7 @@ async def analyze_document(
             {"role": "system", "content": "You are an expert legal analyst."},
             {"role": "user", "content": detect_prompt}
         ],
-        temperature=0.1
+        temperature=1
     )
     doc_type_raw = resp.choices[0].message.content
     if doc_type_raw:
@@ -608,7 +608,7 @@ async def analyze_document(
                 {"role": "system", "content": "You are an expert VC legal analyst. Only extract clauses that present a real risk or obligation. Be extremely concise."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1
+            temperature=1
         )
         try:
             content_str = resp.choices[0].message.content or ''
@@ -636,7 +636,7 @@ async def analyze_document(
                 {"role": "system", "content": "You are an expert VC legal risk analyst. Only respond if there is a real risk. Be extremely concise."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1
+            temperature=1
         )
         try:
             content_str = resp.choices[0].message.content or ''
@@ -664,7 +664,7 @@ async def analyze_document(
             {"role": "system", "content": "You are an expert VC risk scoring analyst. Be objective and rigorous."},
             {"role": "user", "content": score_prompt}
         ],
-        temperature=0.1
+        temperature=1
     )
     try:
         content_str = resp.choices[0].message.content or ''

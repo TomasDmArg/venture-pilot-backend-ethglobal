@@ -50,7 +50,7 @@ class SummaryGenerator:
                     {"role": "system", "content": "You are an expert at creating concise one-line business summaries in English."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=1
             )
             
             summary = response.choices[0].message.content or "Summary not available"

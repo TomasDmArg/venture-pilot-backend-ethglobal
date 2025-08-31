@@ -37,7 +37,7 @@ class SimpleAnalysisService:
                     {"role": "system", "content": "You are an expert business analyst specializing in startup evaluation. Provide clear, structured analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=1
             )
             
             # Parse the response
@@ -94,7 +94,7 @@ class SimpleAnalysisService:
                     {"role": "system", "content": "You are an expert business analyst specializing in startup evaluation. Provide clear, structured analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=1
             )
             
             # Parse the response

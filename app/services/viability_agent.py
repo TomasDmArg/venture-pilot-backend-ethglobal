@@ -31,7 +31,7 @@ class ViabilityAgent:
                     {"role": "system", "content": "You are an expert VC analyst. Provide clear, objective viability assessments."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=1
             )
             
             assessment_text = response.choices[0].message.content or ""

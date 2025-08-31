@@ -206,7 +206,7 @@ class AnalysisService:
         return ChatOpenAI(
             model="gpt-5-nano-2025-08-07",
             api_key=settings.openai_api_key,
-            temperature=0.1
+            temperature=1
         )
     
     async def _parse_crew_results(self, result: str) -> ProjectSummary:

@@ -31,7 +31,7 @@ class FollowUpAgent:
                     {"role": "system", "content": "You are an expert VC analyst who asks the most critical questions to evaluate startups. Generate only the most important, penetrating questions that will reveal the true potential and risks of a project."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=1
             )
             
             questions_text = response.choices[0].message.content or ""
